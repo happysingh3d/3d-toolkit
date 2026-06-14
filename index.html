@@ -1,0 +1,2250 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Normal Map Generator | 3D Artist Suite</title>
+  <meta name="description" content="Browser-based 3D artist tools: WebGL normal map generator, Three.js material viewport, Maya &amp; Blender script generators, texture channel packer and atlas maker.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Vector Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Prism.js Syntax Highlighter -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  
+  <style>
+:root {
+  /* ── Aurora Studio Palette ── */
+  --bg:             #03070f;
+  /* Glass surfaces — semi-transparent so aurora shines through */
+  --sidebar-bg:     rgba(5, 15, 35, 0.55);
+  --surface:        rgba(255, 255, 255, 0.045);
+  --surface-2:      rgba(255, 255, 255, 0.07);
+  --surface-solid:  #060f28;
+  --border:         rgba(6, 182, 212, 0.18);
+  --border-bright:  rgba(6, 182, 212, 0.4);
+  --accent:         #06b6d4;
+  --accent2:        #10b981;
+  --accent-glow:    rgba(6, 182, 212, 0.3);
+  --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #10b981 100%);
+  --violet:         #8b5cf6;
+  --text:           #e0f2fe;
+  --text-muted:     #7dc4d8;
+  --text-dim:       #2e6a82;
+  --success:        #10b981;
+  --warning:        #f59e0b;
+  --error:          #ef4444;
+  --radius:         14px;
+  --radius-lg:      20px;
+  --blur:           blur(28px);
+  --blur-sm:        blur(14px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(6,182,212,0.25); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(6,182,212,0.45); }
+
+/* ── Aurora animated background ── */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Aurora glow layer — vivid enough to show through glass */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 60% at 10% -5%,  rgba(6,182,212,0.55)  0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 105%, rgba(16,185,129,0.45)  0%, transparent 50%),
+    radial-gradient(ellipse 60% 70% at 55% 45%,  rgba(139,92,246,0.22)  0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 30% 90%,  rgba(6,182,212,0.20)   0%, transparent 45%);
+  pointer-events: none;
+  z-index: 0;
+  animation: aurora-shift 12s ease-in-out infinite alternate;
+}
+
+/* Star field */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(255,255,255,0.8)  0%, transparent 100%),
+    radial-gradient(1px   1px   at 34% 72%, rgba(255,255,255,0.5)  0%, transparent 100%),
+    radial-gradient(2px   2px   at 55% 30%, rgba(255,255,255,0.7)  0%, transparent 100%),
+    radial-gradient(1px   1px   at 78% 85%, rgba(255,255,255,0.55) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 91% 12%, rgba(255,255,255,0.65) 0%, transparent 100%),
+    radial-gradient(1px   1px   at 6%  55%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(2px   2px   at 46% 91%, rgba(255,255,255,0.5)  0%, transparent 100%),
+    radial-gradient(2px   2px   at 67% 48%, rgba(6,182,212,0.9)    0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 23% 42%, rgba(16,185,129,0.75)  0%, transparent 100%),
+    radial-gradient(1px   1px   at 80% 25%, rgba(139,92,246,0.7)   0%, transparent 100%),
+    radial-gradient(1px   1px   at 15% 80%, rgba(255,255,255,0.4)  0%, transparent 100%),
+    radial-gradient(2px   2px   at 60% 10%, rgba(255,255,255,0.6)  0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes aurora-shift {
+  0%   { opacity: 1;    filter: hue-rotate(0deg)   brightness(1); }
+  33%  { opacity: 0.88; filter: hue-rotate(20deg)  brightness(1.12); }
+  66%  { opacity: 0.95; filter: hue-rotate(-15deg) brightness(1.05); }
+  100% { opacity: 1;    filter: hue-rotate(8deg)   brightness(0.92); }
+}
+
+/* ── Layout ── */
+.app-container {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Sidebar ── */
+.app-sidebar {
+  width: 270px;
+  background: rgba(5, 15, 38, 0.5);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border-right: 1px solid rgba(6, 182, 212, 0.2);
+  /* Glassy inner highlight on right edge */
+  box-shadow:
+    inset -1px 0 0 rgba(255,255,255,0.05),
+    4px 0 30px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; bottom: 0; left: 0;
+  z-index: 100;
+  padding: 24px 20px;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-icon-wrapper {
+  background: var(--accent-gradient);
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 0 20px var(--accent-glow), 0 4px 12px rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+.logo-icon-wrapper svg { width: 20px; height: 20px; }
+.logo-text h1 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  line-height: 1.2;
+}
+.logo-text p {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.tab-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 11px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13.5px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  transition: all .2s ease;
+}
+.tab-btn svg { width: 16px; height: 16px; color: var(--text-dim); transition: all .2s; flex-shrink: 0; }
+.tab-btn:hover {
+  background: rgba(6,182,212,0.07);
+  border-color: var(--border);
+  color: var(--text);
+}
+.tab-btn:hover svg { color: var(--accent); }
+.tab-btn.active {
+  background: rgba(6,182,212,0.12);
+  border-color: var(--border-bright);
+  color: var(--accent);
+  box-shadow: 0 0 18px rgba(6,182,212,0.1), inset 0 0 16px rgba(6,182,212,0.05);
+}
+.tab-btn.active svg { color: var(--accent); }
+
+.sidebar-footer {
+  margin-top: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  line-height: 1.6;
+}
+.sidebar-footer span {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--success);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--success);
+  margin-right: 6px;
+  animation: pulse-dot 2.5s ease-in-out infinite;
+  vertical-align: middle;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--success); }
+  50%       { opacity: 0.5; box-shadow: 0 0 2px var(--success); }
+}
+
+/* ── Main workspace ── */
+.app-main {
+  margin-left: 270px;
+  flex-grow: 1;
+  padding: 28px 32px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-header {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.workspace-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.system-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--surface);
+  backdrop-filter: var(--blur-sm);
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+}
+.status-indicator {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+  animation: pulse-dot 2.5s ease-in-out infinite;
+}
+
+.panel { display: none; width: 100%; }
+.panel.active { display: block; animation: fadeIn .3s ease-out; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Two-column layout ── */
+.panel-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Glassmorphism cards ── */
+.controls-card {
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* Inner top highlight = key to glass illusion */
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    inset 0 -1px 0 rgba(0,0,0,0.1);
+  transition: border-color .3s, box-shadow .3s;
+}
+.controls-card:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.3),
+    0 0 30px rgba(6,182,212,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.15),
+    inset 0 -1px 0 rgba(0,0,0,0.1);
+}
+.controls-card h3 {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.controls-card h3 svg { width: 14px; height: 14px; }
+
+/* ── Controls ── */
+.control-row { display: flex; flex-direction: column; gap: 7px; }
+.control-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.control-row .val {
+  margin-left: auto;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  background: rgba(6,182,212,0.1);
+  border: 1px solid rgba(6,182,212,0.2);
+  padding: 1px 7px;
+  border-radius: 6px;
+}
+
+/* Slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(6,182,212,0.15);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--accent-glow);
+  transition: transform .15s, box-shadow .15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+  box-shadow: 0 0 18px var(--accent);
+}
+
+select, input[type="number"] {
+  width: 100%;
+  background: rgba(3,8,20,0.6);
+  backdrop-filter: var(--blur-sm);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: border-color .2s, box-shadow .2s;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+}
+select:focus, input[type="number"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ── Upload zones ── */
+.upload-zone {
+  border: 1px dashed var(--border-bright);
+  border-radius: var(--radius);
+  padding: 22px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .25s;
+  position: relative;
+  background: rgba(6,182,212,0.03);
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent);
+  background: rgba(6,182,212,0.07);
+  box-shadow: 0 0 24px rgba(6,182,212,0.08);
+}
+.upload-zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-zone svg { width: 30px; height: 30px; color: var(--accent); margin-bottom: 8px; opacity: 0.7; }
+.upload-zone strong { font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px; color: var(--text); }
+.upload-zone p { font-size: 11px; color: var(--text-muted); }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all .2s ease;
+  letter-spacing: -0.01em;
+}
+.btn-primary {
+  background: var(--accent-gradient);
+  color: #fff;
+  box-shadow: 0 4px 20px var(--accent-glow);
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(6,182,212,0.4);
+  filter: brightness(1.1);
+}
+.btn-secondary {
+  background: var(--surface);
+  backdrop-filter: var(--blur-sm);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(6,182,212,0.08);
+}
+.btn-danger {
+  background: rgba(239,68,68,0.08);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.2);
+}
+.btn-danger:hover {
+  background: rgba(239,68,68,0.18);
+  border-color: #ef4444;
+  box-shadow: 0 0 16px rgba(239,68,68,0.15);
+}
+.btn:disabled { opacity: .3; cursor: not-allowed; transform: none !important; box-shadow: none !important; filter: none !important; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ── Preview cards ── */
+.preview-card {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+  transition: border-color .3s, box-shadow .3s;
+}
+.preview-card:hover {
+  border-color: rgba(6, 182, 212, 0.35);
+  box-shadow:
+    0 12px 50px rgba(0,0,0,0.3),
+    0 0 30px rgba(6,182,212,0.07),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+}
+.preview-card canvas { max-width: 100%; max-height: 520px; display: block; }
+.preview-wrapper { width: 100%; display: flex; flex-direction: column; }
+
+.empty-state { text-align: center; padding: 48px 32px; }
+.empty-state svg { width: 44px; height: 44px; margin-bottom: 16px; color: var(--text-dim); }
+.empty-state h3 { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; font-weight: 600; }
+.empty-state p { font-size: 12px; color: var(--text-dim); }
+
+/* ── Info tooltip ── */
+.info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: rgba(6,182,212,0.15);
+  border: 1px solid rgba(6,182,212,0.3);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  cursor: help;
+  position: relative;
+  flex-shrink: 0;
+  user-select: none;
+}
+.info-tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  background: rgba(4,12,30,0.95);
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--border-bright);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  z-index: 999;
+  pointer-events: none;
+  white-space: normal;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(6,182,212,0.1);
+  text-transform: none;
+  letter-spacing: normal;
+}
+.info-tip::after {
+  content: '';
+  position: absolute;
+  top: 100%; left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--border-bright);
+}
+.info-btn:hover .info-tip, .info-btn:focus .info-tip { display: block; }
+
+.mode-desc {
+  border-left: 2px solid var(--accent);
+  background: rgba(6,182,212,0.04);
+  padding: 12px 14px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ── Viewport ── */
+#viewport-stage {
+  position: relative;
+  width: 100%;
+  min-height: 560px;
+  background: rgba(3,7,15,0.8);
+  backdrop-filter: var(--blur-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(6,182,212,0.06);
+}
+#viewport-canvas { width: 100%; height: 100%; display: block; }
+
+.viewport-empty {
+  position: absolute; inset: 0;
+  background: rgba(3,7,15,0.75);
+  backdrop-filter: var(--blur-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+  z-index: 10;
+}
+.viewport-empty svg { width: 60px; height: 60px; color: var(--accent); margin-bottom: 20px; opacity: 0.7; }
+.viewport-empty h3 { font-size: 17px; font-weight: 600; margin-bottom: 14px; color: var(--text); }
+.viewport-empty ol { text-align: left; color: var(--text-muted); font-size: 13px; line-height: 2.2; max-width: 320px; }
+
+/* ── Script editor ── */
+.script-editor-container {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid rgba(255,255,255,0.18);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.editor-header {
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.script-output {
+  background: rgba(2,5,14,0.95);
+  border: none;
+  font-family: 'Space Mono', monospace;
+  font-size: 12.5px;
+  color: #7dd3fc;
+  padding: 20px;
+  width: 100%;
+  min-height: 460px;
+  resize: vertical;
+  line-height: 1.75;
+  outline: none;
+  display: block;
+  caret-color: var(--accent);
+}
+
+/* ── Channel packer ── */
+.channel-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 600px) { .channel-slots { grid-template-columns: 1fr; } }
+.channel-slot {
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: var(--blur-sm);
+  -webkit-backdrop-filter: var(--blur-sm);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: var(--radius);
+  padding: 14px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.channel-slot:hover {
+  border-color: rgba(6,182,212,0.3);
+  box-shadow: 0 0 20px rgba(6,182,212,0.06);
+}
+.channel-slot .slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.channel-slot .slot-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.slot-R { border-top: 2px solid #f87171; } .slot-R .slot-label { color: #f87171; }
+.slot-G { border-top: 2px solid #34d399; } .slot-G .slot-label { color: #34d399; }
+.slot-B { border-top: 2px solid #60a5fa; } .slot-B .slot-label { color: #60a5fa; }
+.slot-A { border-top: 2px solid #a78bfa; } .slot-A .slot-label { color: #a78bfa; }
+
+/* ── Checkboxes ── */
+.check-row {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--text-muted); cursor: pointer;
+  user-select: none;
+}
+.check-row input[type="checkbox"] {
+  appearance: none;
+  width: 16px; height: 16px;
+  border: 1px solid var(--border-bright);
+  border-radius: 5px;
+  background: rgba(3,8,20,0.6);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.check-row input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.check-row input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px; top: 2px;
+  width: 4px; height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.divider { border: none; border-top: 1px solid var(--border); }
+
+/* ── Dual previews ── */
+.dual-preview { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 800px) { .dual-preview { grid-template-columns: 1fr; } }
+.preview-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 10px;
+  background: rgba(6,182,212,0.04);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* ── Toasts ── */
+#toast-container {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9998;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-top: 1px solid rgba(255,255,255,0.22);
+  padding: 12px 18px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+  animation: toastIn .25s ease-out;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Atlas ── */
+.atlas-drop {
+  border: 1px dashed var(--border-bright);
+  border-radius: var(--radius);
+  padding: 28px 16px;
+  text-align: center;
+  position: relative;
+  transition: all .25s;
+  background: rgba(6,182,212,0.03);
+}
+.atlas-drop:hover, .atlas-drop.drag-over {
+  border-color: var(--accent);
+  background: rgba(6,182,212,0.07);
+  box-shadow: 0 0 24px rgba(6,182,212,0.08);
+}
+.atlas-drop input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.atlas-thumb-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.atlas-thumb { width: 54px; height: 54px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-bright); }
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .panel-layout { grid-template-columns: 1fr; }
+  .app-sidebar { width: 64px; padding: 16px 8px; }
+  .logo-text, .sidebar-footer, .tab-btn span { display: none; }
+  .app-main { margin-left: 64px; padding: 16px; }
+  .logo-section { justify-content: center; }
+  .tab-btn { justify-content: center; padding: 12px; }
+}
+
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar">
+      <div class="logo-section">
+        <div class="logo-icon-wrapper">
+          <i data-lucide="sparkles"></i>
+        </div>
+        <div class="logo-text">
+          <h1>3D Artist Suite</h1>
+          <p>Production Tools</p>
+        </div>
+      </div>
+      <nav class="tab-nav" role="tablist" aria-label="Tool panels">
+        <button class="tab-btn active" data-tab="normal" role="tab">
+          <i data-lucide="layers"></i>
+          <span>Normal Generator</span>
+        </button>
+        <button class="tab-btn" data-tab="viewport" role="tab">
+          <i data-lucide="globe"></i>
+          <span>Material Viewport</span>
+        </button>
+        <button class="tab-btn" data-tab="maya" role="tab">
+          <i data-lucide="code"></i>
+          <span>Maya Scripts</span>
+        </button>
+        <button class="tab-btn" data-tab="blender" role="tab">
+          <i data-lucide="terminal"></i>
+          <span>Blender Scripts</span>
+        </button>
+        <button class="tab-btn" data-tab="packer" role="tab">
+          <i data-lucide="package"></i>
+          <span>Packer &amp; Atlas</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <p><span></span>GPU WebGL · Local &amp; Secure</p>
+        <p style="margin-top:4px;">3D Artist Suite v1.4</p>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="app-main">
+      <header class="workspace-header">
+        <h2 id="workspace-title">Normal Map Generator</h2>
+        <div class="system-status">
+          <span class="status-indicator"></span>
+          <span>GPU WebGL Ready</span>
+        </div>
+      </header>
+
+      <!-- PANELS -->
+      <section id="panel-normal" class="panel active" role="tabpanel"></section>
+      <section id="panel-viewport" class="panel" role="tabpanel"></section>
+      <section id="panel-maya" class="panel" role="tabpanel"></section>
+      <section id="panel-blender" class="panel" role="tabpanel"></section>
+      <section id="panel-packer" class="panel" role="tabpanel"></section>
+    </main>
+  </div>
+
+  <!-- Toast system anchor -->
+  <div id="toast-container"></div>
+
+  <script type="module">
+// ── Global Three.js CDN Declarations ─────────────────────────────────────────
+const THREE_CDN = 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+const ORBIT_CDN = 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+// ── Shared UI State ──────────────────────────────────────────────────────────
+const state = {
+  normalCanvas: null,
+  heightCanvas: null,
+};
+
+// ── Lightweight Toast Notifications System ───────────────────────────────────
+window.showToast = function(msg, type = 'success') {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+  toast.innerHTML = `<i data-lucide="${icon}" style="width:16px; height:16px; color:${type === 'success' ? 'var(--success)' : 'var(--warning)'}"></i><span>${msg}</span>`;
+  container.appendChild(toast);
+  lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide', container: toast });
+  setTimeout(() => toast.remove(), 3000);
+};
+
+// Mode Descriptions mapping
+const MODE_DESCRIPTIONS = {
+  modulo: 'Selects components at specified intervals (every Nth face/edge) for pattern creation.',
+  angle: 'Selects hard edges or creases sharper than the specified angle limit.',
+  slope: 'Selects faces oriented towards a target direction axis within a deviation threshold.',
+  ngons: 'Identifies non-quad polygon structures containing more than 4 vertices.',
+  nonmanifold: 'Locates critical modeling errors like T-junctions or edges shared by 3+ faces.'
+};
+
+function infoTip(text) {
+  return `<i class="info-btn" tabindex="0" aria-label="Info">i<span class="info-tip">${text}</span></i>`;
+}
+
+function sliderRow(id, label, min, max, step, value, tip = '') {
+  return `
+  <div class="control-row">
+    <label for="${id}">${label}${tip ? ' ' + infoTip(tip) : ''}<span class="val" id="${id}-val">${value}</span></label>
+    <input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${value}">
+  </div>`;
+}
+
+function liveSlider(id, onChange) {
+  const el  = document.getElementById(id);
+  const val = document.getElementById(`${id}-val`);
+  if (!el || !val) return;
+  const update = () => { val.textContent = el.value; if (onChange) onChange(+el.value); };
+  el.addEventListener('input', update);
+  return el;
+}
+
+// ── Boot & Tab Router ────────────────────────────────────────────────────────
+const PANELS = { normal: null, viewport: null, maya: null, blender: null, packer: null };
+const PANEL_TITLES = {
+  normal: 'Normal Map Generator',
+  viewport: 'PBR Material Viewport',
+  maya: 'Maya procedural Script Generator',
+  blender: 'Blender Python Script Generator',
+  packer: 'Channel Packer & Texture Atlas'
+};
+
+function showTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${id}`));
+  document.getElementById('workspace-title').textContent = PANEL_TITLES[id];
+  
+  // Dynamic Page Title
+  document.title = `${PANEL_TITLES[id]} | 3D Artist Suite`;
+
+  if (!PANELS[id]) {
+    if (id === 'normal')   PANELS.normal   = initNormalPanel(document.getElementById('panel-normal'), state);
+    if (id === 'viewport') PANELS.viewport = initViewportPanel(document.getElementById('panel-viewport'), state);
+    if (id === 'maya')     PANELS.maya     = initMayaPanel(document.getElementById('panel-maya'));
+    if (id === 'blender')  PANELS.blender  = initBlenderPanel(document.getElementById('panel-blender'));
+    if (id === 'packer')   PANELS.packer   = initPackerPanel(document.getElementById('panel-packer'));
+  }
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => showTab(btn.dataset.tab));
+});
+
+// Init first panel + Lucide icons
+PANELS.normal = initNormalPanel(document.getElementById('panel-normal'), state);
+lucide.createIcons();
+
+// ── Normal Map Generator Panel ────────────────────────────────────────────────
+function initNormalPanel(container, state) {
+  container.innerHTML = `
+  <div class="panel-layout">
+    <aside class="controls-card">
+      <h3>Generator Options</h3>
+      <div class="upload-zone" id="nm-drop">
+        <input type="file" id="nm-file" accept="image/*">
+        <i data-lucide="image-plus"></i>
+        <strong>Drop Albedo / Diffuse map</strong>
+        <p>PNG, JPG · generates normal &amp; height maps</p>
+      </div>
+      ${sliderRow('nm-low',    'Low Freq (broad shape)',    0, 2, 0.01, 0.5,  'Controls large sweeping shapes.')}
+      ${sliderRow('nm-mid',    'Mid Freq (panel detail)',   0, 2, 0.01, 1.0,  'Medium-frequency detail like panel lines and edges.')}
+      ${sliderRow('nm-high',   'High Freq (micro-pores)',   0, 2, 0.01, 0.3,  'Finest micro-detail: pores, scratches.')}
+      ${sliderRow('nm-str',    'Strength',                  0, 3, 0.01, 1.0,  'Overall normal map intensity.')}
+      ${sliderRow('nm-tile',   'Tiling scale',           0.25, 8, 0.25, 1.0,  'Detail tiling multiplier.')}
+      ${sliderRow('nm-detail', 'Detail strength',           0, 2, 0.01, 0.5,  'Detail overlay blend intensity.')}
+      <div class="btn-row">
+        <button class="btn btn-primary" id="nm-gen" disabled><i data-lucide="refresh-cw"></i> Generate</button>
+        <button class="btn btn-secondary" id="nm-dl" disabled><i data-lucide="download"></i> Download</button>
+        <button class="btn btn-danger" id="nm-reset"><i data-lucide="trash-2"></i> Reset</button>
+      </div>
+    </aside>
+    <div class="preview-wrapper">
+      <div class="dual-preview">
+        <div style="position:relative;">
+          <div class="loader-overlay" id="nm-loader" style="display:none;">
+            <div class="spinner"></div>
+            <span style="font-family:'Space Mono', monospace; font-size:11px; color:var(--accent);">BAKING MAPS...</span>
+          </div>
+          <div class="preview-card" id="nm-src-wrap">
+            <div class="empty-state">
+              <i data-lucide="file-image"></i>
+              <h3>Height Map (Computed)</h3>
+              <p>Procedurally generated from Albedo luminance</p>
+            </div>
+          </div>
+          <div class="preview-label">Height Map (Computed from Albedo)</div>
+        </div>
+        <div>
+          <div class="preview-card" id="nm-out-wrap">
+            <div class="empty-state">
+              <i data-lucide="sparkles"></i>
+              <h3>Normal Map (Output)</h3>
+              <p>Will be generated automatically</p>
+            </div>
+          </div>
+          <div class="preview-label">Normal Map (Output)</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide', container });
+
+  let srcImg = null;
+  let outCanvas = null;
+
+  const srcWrap = container.querySelector('#nm-src-wrap');
+  const outWrap = container.querySelector('#nm-out-wrap');
+  const genBtn  = container.querySelector('#nm-gen');
+  const dlBtn   = container.querySelector('#nm-dl');
+  const resetBtn = container.querySelector('#nm-reset');
+  const loader   = container.querySelector('#nm-loader');
+
+  ['nm-low','nm-mid','nm-high','nm-str','nm-tile','nm-detail'].forEach(id => liveSlider(id));
+
+  function getParams() {
+    return {
+      low:    +document.getElementById('nm-low').value,
+      mid:    +document.getElementById('nm-mid').value,
+      high:   +document.getElementById('nm-high').value,
+      str:    +document.getElementById('nm-str').value,
+      tile:   +document.getElementById('nm-tile').value,
+      detail: +document.getElementById('nm-detail').value,
+    };
+  }
+
+  function loadImage(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        srcImg = img;
+        genBtn.disabled = false;
+        generate();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  container.querySelector('#nm-file').addEventListener('change', e => loadImage(e.target.files[0]));
+  const drop = container.querySelector('#nm-drop');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('drag-over'); loadImage(e.dataTransfer.files[0]); });
+
+  function sobelNormal(pixels, w, h, strength) {
+    const out = new Uint8ClampedArray(w * h * 4);
+    const g = (x, y) => {
+      x = Math.max(0, Math.min(w - 1, x));
+      y = Math.max(0, Math.min(h - 1, y));
+      return pixels[(y * w + x) * 4] / 255;
+    };
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const gx = (-g(x-1,y-1) - 2*g(x-1,y) - g(x-1,y+1)) + (g(x+1,y-1) + 2*g(x+1,y) + g(x+1,y+1));
+        const gy = (-g(x-1,y-1) - 2*g(x,y-1) - g(x+1,y-1)) + (g(x-1,y+1) + 2*g(x,y+1) + g(x+1,y+1));
+        const s = strength;
+        const nx = -gx * s;
+        const ny = -gy * s;
+        const nz = 1.0;
+        const len = Math.sqrt(nx*nx + ny*ny + nz*nz);
+        const i = (y * w + x) * 4;
+        out[i]   = ((nx/len) * 0.5 + 0.5) * 255;
+        out[i+1] = ((ny/len) * 0.5 + 0.5) * 255;
+        out[i+2] = ((nz/len) * 0.5 + 0.5) * 255;
+        out[i+3] = 255;
+      }
+    }
+    return out;
+  }
+
+  function blurChannel(pixels, w, h, radius) {
+    const out = new Float32Array(w * h);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let sum = 0, count = 0;
+        for (let dy = -radius; dy <= radius; dy++) {
+          for (let dx = -radius; dx <= radius; dx++) {
+            const nx = Math.max(0, Math.min(w-1, x+dx));
+            const ny = Math.max(0, Math.min(h-1, y+dy));
+            sum += pixels[(ny*w+nx)*4] / 255;
+            count++;
+          }
+        }
+        out[y*w+x] = sum / count;
+      }
+    }
+    return out;
+  }
+
+  function generate() {
+    if (!srcImg) return;
+    loader.style.display = 'flex';
+    
+    // SetTimeout yields execution to browser thread to allow DOM rendering spinner
+    setTimeout(() => {
+      const p = getParams();
+      const W = srcImg.width, H = srcImg.height;
+
+      const tmpC = document.createElement('canvas');
+      tmpC.width = W; tmpC.height = H;
+      const ctx = tmpC.getContext('2d');
+      ctx.drawImage(srcImg, 0, 0);
+      const raw = ctx.getImageData(0, 0, W, H);
+      const pixels = raw.data;
+
+      const heightMapData = new Uint8ClampedArray(W * H * 4);
+      for (let i = 0; i < W * H; i++) {
+        const idx = i * 4;
+        const luma = 0.299 * pixels[idx] + 0.587 * pixels[idx+1] + 0.114 * pixels[idx+2];
+        heightMapData[idx] = heightMapData[idx+1] = heightMapData[idx+2] = luma;
+        heightMapData[idx+3] = 255;
+      }
+
+      const heightCanvas = document.createElement('canvas');
+      heightCanvas.width = W; heightCanvas.height = H;
+      heightCanvas.getContext('2d').putImageData(new ImageData(heightMapData, W, H), 0, 0);
+      heightCanvas.style.maxWidth = '100%'; heightCanvas.style.maxHeight = '400px';
+      srcWrap.innerHTML = '';
+      srcWrap.appendChild(heightCanvas);
+
+      const lowBlur  = blurChannel(heightMapData, W, H, Math.round(8 * p.tile));
+      const midBlur  = blurChannel(heightMapData, W, H, Math.round(3 * p.tile));
+      const highBlur = blurChannel(heightMapData, W, H, 1);
+
+      const composite = new Uint8ClampedArray(W * H * 4);
+      for (let i = 0; i < W * H; i++) {
+        const idx = i * 4;
+        const v = (lowBlur[i] * p.low + midBlur[i] * p.mid + highBlur[i] * p.high) / Math.max(0.001, p.low + p.mid + p.high);
+        composite[idx] = composite[idx+1] = composite[idx+2] = v * 255;
+        composite[idx+3] = 255;
+      }
+
+      const tileData = new Uint8ClampedArray(W * H * 4);
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const tx = Math.floor((x * p.tile) % W);
+          const ty = Math.floor((y * p.tile) % H);
+          const si = (ty * W + tx) * 4;
+          const di = (y * W + x) * 4;
+          const base = composite[di] / 255;
+          const detail = heightMapData[si] / 255;
+          const blended = base * (1 - p.detail * 0.5) + detail * p.detail * 0.5;
+          tileData[di] = tileData[di+1] = tileData[di+2] = blended * 255;
+          tileData[di+3] = 255;
+        }
+      }
+
+      const normalData = sobelNormal(tileData, W, H, p.str);
+
+      outCanvas = document.createElement('canvas');
+      outCanvas.width = W; outCanvas.height = H;
+      outCanvas.getContext('2d').putImageData(new ImageData(normalData, W, H), 0, 0);
+      outCanvas.style.maxWidth = '100%'; outCanvas.style.maxHeight = '400px';
+      outWrap.innerHTML = '';
+      outWrap.appendChild(outCanvas);
+      dlBtn.disabled = false;
+
+      state.normalCanvas = outCanvas;
+      state.heightCanvas = heightCanvas;
+      
+      if (window.applyViewportTextures) {
+        window.applyViewportTextures(outCanvas, heightCanvas);
+      }
+      
+      loader.style.display = 'none';
+      showToast('Maps generated and viewport material updated.');
+    }, 50);
+  }
+
+  genBtn.addEventListener('click', generate);
+  
+  ['nm-low','nm-mid','nm-high','nm-str','nm-tile','nm-detail'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => { if (srcImg) generate(); });
+  });
+
+  dlBtn.addEventListener('click', () => {
+    if (!outCanvas) return;
+    const a = document.createElement('a');
+    a.href = outCanvas.toDataURL('image/png');
+    a.download = 'normal_map.png';
+    a.click();
+    showToast('Normal map exported successfully.');
+  });
+
+  resetBtn.addEventListener('click', () => {
+    const defaults = { 'nm-low': 0.5, 'nm-mid': 1.0, 'nm-high': 0.3, 'nm-str': 1.0, 'nm-tile': 1.0, 'nm-detail': 0.5 };
+    Object.entries(defaults).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) { el.value = val; const valEl = document.getElementById(`${id}-val`); if (valEl) valEl.textContent = val; }
+    });
+    if (srcImg) generate();
+  });
+}
+
+// ── Material Viewport Panel (Three.js PBR) ────────────────────────────────────
+function initViewportPanel(container, state) {
+  container.innerHTML = `
+  <div class="panel-layout">
+    <aside class="controls-card">
+      <h3>Material Settings</h3>
+      <div class="upload-zone" id="vp-nm-drop">
+        <input type="file" id="vp-nm-file" accept="image/*">
+        <i data-lucide="file-up"></i>
+        <strong>Normal Map</strong>
+        <p>Drop normal map texture</p>
+      </div>
+      <div class="upload-zone" id="vp-hm-drop">
+        <input type="file" id="vp-hm-file" accept="image/*">
+        <i data-lucide="file-up"></i>
+        <strong>Height Map (Optional)</strong>
+        <p>Used for displacement</p>
+      </div>
+      <div class="control-row">
+        <label for="vp-geom">Preview Geometry</label>
+        <select id="vp-geom">
+          <option value="sphere" selected>Sphere (Recommended)</option>
+          <option value="cube">Box / Cube</option>
+          <option value="cylinder">Cylinder</option>
+          <option value="plane">Plane</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label for="vp-light">Studio Lighting Preset</label>
+        <select id="vp-light">
+          <option value="studio" selected>Studio (Three-Point)</option>
+          <option value="dramatic">Dramatic Contrast</option>
+          <option value="cyber">Cyberpunk Neon</option>
+          <option value="sunset">Warm Sunset</option>
+        </select>
+      </div>
+      ${sliderRow('vp-subdiv', 'Displacement Tessellation', 1, 256, 1, 64,  'Mesh subdivisions.')}
+      ${sliderRow('vp-disp',   'Displacement Scale',      -2,   2, 0.01, 0.1, 'Height multiplier for vertices.')}
+      ${sliderRow('vp-bias',   'Displacement Bias',       -1,   1, 0.01, 0.0, 'Shifts displacement midpoint.')}
+      ${sliderRow('vp-nstr',   'Normal Map Strength',      0,   3, 0.01, 1.0, 'Intensity of surface normals.')}
+      ${sliderRow('vp-rough',  'Roughness',                0,   1, 0.01, 0.5, '0 = mirror, 1 = rough.')}
+      ${sliderRow('vp-metal',  'Metalness',                0,   1, 0.01, 0.0, '0 = plastic, 1 = metal.')}
+      ${sliderRow('vp-speed',  'Orbit Speed',              0,   5, 0.1,  1.0, 'Speed of automated rotation.')}
+      <div class="btn-row">
+        <button class="btn btn-primary" id="vp-load-gen" style="width:100%;"><i data-lucide="arrow-up"></i> Use from Normal Generator</button>
+      </div>
+    </aside>
+    <div>
+      <div id="viewport-stage">
+        <canvas id="viewport-canvas"></canvas>
+        <div class="viewport-empty" id="viewport-empty">
+          <i data-lucide="globe"></i>
+          <h3>Material Viewport</h3>
+          <ol>
+            <li>Generate a map in the <strong>Normal Generator</strong></li>
+            <li>Click <strong>"Use from Normal Generator"</strong> above, or upload textures manually</li>
+            <li>Adjust materials, preview geometries, and lights</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide', container });
+
+  let THREE, OrbitControls;
+  let renderer, scene, camera, controls, mesh, mat, animId;
+  let orbitSpeed = 1.0;
+  let initPromise = null;
+  let dirLight, fillLight, ambLight;
+
+  function initThree() {
+    if (initPromise) return initPromise;
+    initPromise = (async () => {
+      const mod   = await import(THREE_CDN);
+      const orMod = await import(ORBIT_CDN);
+      THREE = mod;
+      OrbitControls = orMod.OrbitControls;
+
+      const canvas = document.getElementById('viewport-canvas');
+      const stage  = canvas.parentElement;
+
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(stage.clientWidth, stage.clientHeight);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.25;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0a0a0c);
+
+      camera = new THREE.PerspectiveCamera(45, stage.clientWidth / stage.clientHeight, 0.01, 100);
+      camera.position.set(0, 0, 2.5);
+
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.maxDistance = 6;
+      controls.minDistance = 1;
+
+      const gridHelper = new THREE.GridHelper(4, 40, 0x242435, 0x14141d);
+      gridHelper.position.y = -1.1;
+      scene.add(gridHelper);
+
+      ambLight = new THREE.AmbientLight(0xffffff, 0.15);
+      scene.add(ambLight);
+      dirLight = new THREE.DirectionalLight(0xffffff, 2.2);
+      dirLight.position.set(4, 5, 4);
+      scene.add(dirLight);
+      fillLight = new THREE.DirectionalLight(0x06b6d4, 0.8);
+      fillLight.position.set(-4, -2, 2);
+      scene.add(fillLight);
+
+      const envCanvas = document.createElement('canvas');
+      envCanvas.width = 512; envCanvas.height = 256;
+      const envCtx = envCanvas.getContext('2d');
+      envCtx.fillStyle = '#080810'; envCtx.fillRect(0,0,512,256);
+      let grad = envCtx.createRadialGradient(128,128,10, 128,128,120);
+      grad.addColorStop(0, '#f97316'); grad.addColorStop(1, '#00000000');
+      envCtx.fillStyle = grad; envCtx.fillRect(0,0,512,256);
+      grad = envCtx.createRadialGradient(384,128,10, 384,128,120);
+      grad.addColorStop(0, '#06b6d4'); grad.addColorStop(1, '#00000000');
+      envCtx.fillStyle = grad; envCtx.fillRect(0,0,512,256);
+
+      const envTex = new THREE.CanvasTexture(envCanvas);
+      envTex.mapping = THREE.EquirectangularReflectionMapping;
+      scene.environment = envTex;
+
+      const geo = new THREE.SphereGeometry(1, 128, 128);
+      mat = new THREE.MeshStandardMaterial({ color: 0x9090a2, roughness: 0.5, metalness: 0.0 });
+      mesh = new THREE.Mesh(geo, mat);
+      scene.add(mesh);
+
+      function animate() {
+        animId = requestAnimationFrame(animate);
+        mesh.rotation.y += 0.003 * orbitSpeed;
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      const ro = new ResizeObserver(() => {
+        renderer.setSize(stage.clientWidth, stage.clientHeight);
+        camera.aspect = stage.clientWidth / stage.clientHeight;
+        camera.updateProjectionMatrix();
+      });
+      ro.observe(stage);
+
+      document.getElementById('vp-geom').addEventListener('change', updateGeometry);
+      document.getElementById('vp-light').addEventListener('change', updateLighting);
+    })();
+    return initPromise;
+  }
+
+  function updateGeometry() {
+    if (!mesh || !THREE) return;
+    mesh.geometry.dispose();
+    const type = document.getElementById('vp-geom').value;
+    const subdiv = +document.getElementById('vp-subdiv').value;
+    if (type === 'sphere') {
+      mesh.geometry = new THREE.SphereGeometry(1, subdiv, subdiv);
+    } else if (type === 'cube') {
+      mesh.geometry = new THREE.BoxGeometry(1.3, 1.3, 1.3, subdiv, subdiv, subdiv);
+    } else if (type === 'cylinder') {
+      mesh.geometry = new THREE.CylinderGeometry(0.7, 0.7, 1.4, subdiv, subdiv);
+    } else if (type === 'plane') {
+      mesh.geometry = new THREE.PlaneGeometry(1.6, 1.6, subdiv, subdiv);
+    }
+  }
+
+  function updateLighting(e) {
+    if (!scene) return;
+    const mode = e.target.value;
+    if (mode === 'studio') {
+      dirLight.color.setHex(0xffffff); dirLight.intensity = 2.2; dirLight.position.set(4, 5, 4);
+      fillLight.color.setHex(0x06b6d4); fillLight.intensity = 0.8; fillLight.position.set(-4, -2, 2);
+      ambLight.color.setHex(0xffffff); ambLight.intensity = 0.15;
+    } else if (mode === 'dramatic') {
+      dirLight.color.setHex(0xffffff); dirLight.intensity = 4.0; dirLight.position.set(5, 5, 2);
+      fillLight.color.setHex(0x111122); fillLight.intensity = 0.1; fillLight.position.set(-5, -5, -2);
+      ambLight.color.setHex(0xffffff); ambLight.intensity = 0.05;
+    } else if (mode === 'cyber') {
+      dirLight.color.setHex(0x00ffff); dirLight.intensity = 3.5; dirLight.position.set(3, 2, 4);
+      fillLight.color.setHex(0xff00ff); fillLight.intensity = 3.0; fillLight.position.set(-3, -2, 2);
+      ambLight.color.setHex(0xffffff); ambLight.intensity = 0.1;
+    } else if (mode === 'sunset') {
+      dirLight.color.setHex(0xffaa44); dirLight.intensity = 3.5; dirLight.position.set(4, 2, 3);
+      fillLight.color.setHex(0x4477ff); fillLight.intensity = 1.5; fillLight.position.set(-4, -2, -3);
+      ambLight.color.setHex(0xffffff); ambLight.intensity = 0.1;
+    }
+  }
+
+  function applyTextures(nmC, hmC) {
+    if (!THREE || !mat) return;
+    document.getElementById('viewport-empty').style.display = 'none';
+    
+    if (nmC) {
+      const tex = new THREE.CanvasTexture(nmC);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+      mat.normalMap = tex;
+      const nstr = +document.getElementById('vp-nstr').value;
+      mat.normalScale.set(nstr, nstr);
+    }
+    
+    if (hmC) {
+      const tex = new THREE.CanvasTexture(hmC);
+      tex.needsUpdate = true;
+      mat.displacementMap = tex;
+      mat.displacementScale = +document.getElementById('vp-disp').value;
+      mat.displacementBias = +document.getElementById('vp-bias').value;
+    }
+    mat.needsUpdate = true;
+  }
+
+  window.applyViewportTextures = applyTextures;
+
+  function loadTextureFile(file, type) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async e => {
+      const img = new Image();
+      img.onload = async () => {
+        await initThree();
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        if (type === 'normal') applyTextures(c, null);
+        else applyTextures(null, c);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  const nmDrop = container.querySelector('#vp-nm-drop');
+  nmDrop.querySelector('input').addEventListener('change', e => loadTextureFile(e.target.files[0], 'normal'));
+  nmDrop.addEventListener('dragover', e => { e.preventDefault(); nmDrop.classList.add('drag-over'); });
+  nmDrop.addEventListener('dragleave', () => nmDrop.classList.remove('drag-over'));
+  nmDrop.addEventListener('drop', e => { e.preventDefault(); nmDrop.classList.remove('drag-over'); loadTextureFile(e.dataTransfer.files[0], 'normal'); });
+
+  const hmDrop = container.querySelector('#vp-hm-drop');
+  hmDrop.querySelector('input').addEventListener('change', e => loadTextureFile(e.target.files[0], 'height'));
+  hmDrop.addEventListener('dragover', e => { e.preventDefault(); hmDrop.classList.add('drag-over'); });
+  hmDrop.addEventListener('dragleave', () => hmDrop.classList.remove('drag-over'));
+  hmDrop.addEventListener('drop', e => { e.preventDefault(); hmDrop.classList.remove('drag-over'); loadTextureFile(e.dataTransfer.files[0], 'height'); });
+
+  container.querySelector('#vp-load-gen').addEventListener('click', async () => {
+    if (!state.normalCanvas) { alert('Generate a normal map first!'); return; }
+    await initThree();
+    applyTextures(state.normalCanvas, state.heightCanvas);
+    showToast('Textures applied to viewport material.');
+  });
+
+  liveSlider('vp-subdiv', () => { updateGeometry(); });
+  liveSlider('vp-disp', v => { if (mat) { mat.displacementScale = v; mat.needsUpdate = true; }});
+  liveSlider('vp-bias', v => { if (mat) { mat.displacementBias  = v; mat.needsUpdate = true; }});
+  liveSlider('vp-nstr', v => { if (mat && mat.normalMap) { mat.normalScale.set(v, v); mat.needsUpdate = true; }});
+  liveSlider('vp-rough', v => { if (mat) { mat.roughness = v; mat.needsUpdate = true; }});
+  liveSlider('vp-metal', v => { if (mat) { mat.metalness = v; mat.needsUpdate = true; }});
+  liveSlider('vp-speed', v => { orbitSpeed = v; });
+}
+
+// ── Script Pipeline Code Builders ──────────────────────────────────────────
+function buildScript(lang, mode, params) {
+  const N = params.n || 4;
+  const ang = params.angle || 30;
+  const axis = params.axis || 'Y';
+  const thr = params.threshold || 45;
+
+  if (lang === 'mel') {
+    switch (mode) {
+      case 'modulo': return `// Maya MEL — Modulo Select (every ${N}th face)
+proc moduloSelect(int $n) {
+    string $sel[] = \`ls -sl -fl\`;
+    if (size($sel) == 0) return;
+    polySelectConstraint -m 3 -t 8 -pp 1;
+    string $faces[] = \`ls -sl -fl\`;
+    polySelectConstraint -m 0;
+    string $keep[];
+    int $i = 0;
+    for ($f in $faces) {
+        if ($i % $n == 0) $keep[size($keep)] = $f;
+        $i++;
+    }
+    select -r $keep;
+}
+moduloSelect(${N});`;
+
+      case 'angle': return `// Maya MEL — Hard Edge Select (threshold: ${ang}°)
+proc selectHardEdges(float $threshold) {
+    polySelectConstraint -m 3 -t 0x8000 -a 1 -ab 0 $threshold;
+    string $hard[] = \`ls -sl -fl\`;
+    polySelectConstraint -m 0;
+    select -r $hard;
+}
+selectHardEdges(${ang});`;
+
+      case 'slope': return `// Maya MEL — Slope Face Orientation Select (${axis}, ${thr}°)
+proc selectFacesBySlope(string $axis, float $threshold) {
+    string $mesh[] = \`ls -sl -dag -type mesh\`;
+    if (size($mesh) == 0) return;
+    float $dir[] = ($axis == "Y") ? {0,1,0} : {0,0,1};
+    string $keep[];
+    string $faces[] = \`polyListComponentConversion -ff -tf ($mesh[0])\`;
+    $faces = \`ls -fl $faces\`;
+    for ($f in $faces) {
+        float $n[] = \`polyInfo -fn $f\`;
+        float $dot = $n[0]*$dir[0] + $n[1]*$dir[1] + $n[2]*$dir[2];
+        float $ang = \`acosd($dot)\`;
+        if ($ang < $threshold) $keep[size($keep)] = $f;
+    }
+    select -r $keep;
+}
+selectFacesBySlope("${axis}", ${thr});`;
+
+      case 'ngons': return `// Maya MEL — N-Gon Finder (>4 sides)
+proc findNGons() {
+    string $mesh[] = \`ls -sl -dag -type mesh\`;
+    if (size($mesh) == 0) return;
+    string $ngons[];
+    string $faces[] = \`polyListComponentConversion -ff -tf ($mesh[0])\`;
+    $faces = \`ls -fl $faces\`;
+    for ($f in $faces) {
+        int $verts[] = \`polyListComponentConversion -fv -tv $f\`;
+        if (size($verts) > 4) $ngons[size($ngons)] = $f;
+    }
+    select -r $ngons;
+}
+findNGons();`;
+
+      case 'nonmanifold': return `// Maya MEL — Non-Manifold Geometry Detector
+proc detectNonManifold() {
+    polySelectConstraint -m 3 -t 0x8000 -topology 1;
+    string $nm[] = \`ls -sl -fl\`;
+    polySelectConstraint -m 0;
+    select -r $nm;
+}
+detectNonManifold();`;
+      default: return '// Unknown configuration';
+    }
+  }
+
+  // Language: Python
+  switch (mode) {
+    case 'modulo': return `# Maya Python — Modulo Select (every ${N}th component)
+import maya.cmds as cmds
+def modulo_select(n=${N}):
+    sel = cmds.ls(sl=True, fl=True)
+    if not sel: return
+    cmds.polySelectConstraint(m=3, t=8, pp=1)
+    faces = cmds.ls(sl=True, fl=True)
+    cmds.polySelectConstraint(m=0)
+    keep = [f for i, f in enumerate(faces) if i % n == 0]
+    cmds.select(keep, r=True)
+modulo_select(${N})`;
+
+    case 'angle': return `# Maya Python — Hard Edge Select (threshold: ${ang}°)
+import maya.cmds as cmds
+import maya.api.OpenMaya as om
+def select_hard_edges(threshold=${ang}):
+    meshes = cmds.ls(sl=True, dag=True, type='mesh')
+    if not meshes: return
+    hard = []
+    for m in meshes:
+        it = om.MItMeshEdge(om.MGlobal.getSelectionListByName(m).getDagPath(0))
+        while not it.isDone():
+            if not it.isSmooth: hard.append(f"{m}.e[{it.index()}]")
+            it.next()
+    if hard: cmds.select(hard, r=True)
+select_hard_edges(${ang})`;
+
+    case 'slope': return `# Maya Python — Slope Face Orientation Select
+import maya.cmds as cmds
+import maya.api.OpenMaya as om
+import math
+def select_faces_by_slope(axis="${axis}", threshold=${thr}):
+    axes = {"X":(1,0,0),"-X":(-1,0,0),"Y":(0,1,0),"-Y":(0,-1,0),"Z":(0,0,1),"-Z":(0,0,-1)}
+    direction = om.MVector(*axes.get(axis, (0,1,0))).normalize()
+    meshes = cmds.ls(sl=True, dag=True, type='mesh')
+    if not meshes: return
+    keep = []
+    for m in meshes:
+        fn = om.MFnMesh(om.MGlobal.getSelectionListByName(m).getDagPath(0))
+        normals = fn.getFaceVertexNormals(om.MSpace.kWorld)
+        for i in range(fn.numPolygons):
+            normal = om.MVector(*normals[fn.getPolygonVertices(i)[0]]).normalize()
+            angle = math.degrees(math.acos(max(-1, min(1, normal * direction))))
+            if angle < threshold: keep.append(f"{m}.f[{i}]")
+    cmds.select(keep, r=True)
+select_faces_by_slope("${axis}", ${thr})`;
+
+    case 'ngons': return `# Maya Python — N-Gon Finder
+import maya.cmds as cmds
+import maya.api.OpenMaya as om
+def find_ngons():
+    meshes = cmds.ls(sl=True, dag=True, type='mesh')
+    if not meshes: return
+    ngons = []
+    for m in meshes:
+        fn = om.MFnMesh(om.MGlobal.getSelectionListByName(m).getDagPath(0))
+        for i in range(fn.numPolygons):
+            if fn.polygonVertexCount(i) > 4: ngons.append(f"{m}.f[{i}]")
+    if ngons: cmds.select(ngons, r=True)
+find_ngons()`;
+
+    case 'nonmanifold': return `# Maya Python — Non-Manifold Geometry Detector
+import maya.cmds as cmds
+import maya.api.OpenMaya as om
+def detect_non_manifold():
+    meshes = cmds.ls(sl=True, dag=True, type='mesh')
+    if not meshes: return
+    nm_edges = []
+    for m in meshes:
+        dp = om.MGlobal.getSelectionListByName(m).getDagPath(0)
+        it = om.MItMeshEdge(dp)
+        while not it.isDone():
+            if it.numConnectedFaces() > 2: nm_edges.append(f"{m}.e[{it.index()}]")
+            it.next()
+    if nm_edges: cmds.select(nm_edges, r=True)
+detect_non_manifold()`;
+    default: return '# Configuration error';
+  }
+}
+
+function buildBlenderScript(mode, params) {
+  const N = params.n || 4;
+  const ang = params.angle || 30;
+  const axis = params.axis || 'Y';
+  const thr = params.threshold || 45;
+
+  switch (mode) {
+    case 'modulo': return `# Blender Python — Modulo selection helper
+import bpy, bmesh
+obj = bpy.context.active_object
+if obj and obj.type == 'MESH':
+    bpy.ops.object.mode_set(mode='EDIT')
+    bm = bmesh.from_edit_mesh(obj.data)
+    for i, face in enumerate(bm.faces):
+        face.select = (i % ${N} == 0)
+    bmesh.update_edit_mesh(obj.data)`;
+    case 'angle': return `# Blender Python — Select sharp edges (Creases sharper than ${ang}°)
+import bpy, bmesh
+obj = bpy.context.active_object
+if obj and obj.type == 'MESH':
+    bpy.ops.object.mode_set(mode='EDIT')
+    bm = bmesh.from_edit_mesh(obj.data)
+    for edge in bm.edges:
+        edge.select = not edge.is_smooth
+    bmesh.update_edit_mesh(obj.data)`;
+    case 'slope': return `# Blender Python — Select faces by slope direction (Axis ${axis}, Dev ${thr}°)
+import bpy, bmesh
+import mathutils, math
+obj = bpy.context.active_object
+axes = {"X":(1,0,0),"Y":(0,1,0),"Z":(0,0,1)}
+dir_vec = mathutils.Vector(axes.get("${axis}", (0,1,0)))
+if obj and obj.type == 'MESH':
+    bpy.ops.object.mode_set(mode='EDIT')
+    bm = bmesh.from_edit_mesh(obj.data)
+    for face in bm.faces:
+        angle = math.degrees(face.normal.angle(dir_vec))
+        face.select = (angle < ${thr})
+    bmesh.update_edit_mesh(obj.data)`;
+    case 'ngons': return `# Blender Python — Select N-gons (> 4 Vertices)
+import bpy, bmesh
+obj = bpy.context.active_object
+if obj and obj.type == 'MESH':
+    bpy.ops.object.mode_set(mode='EDIT')
+    bm = bmesh.from_edit_mesh(obj.data)
+    for face in bm.faces:
+        face.select = (len(face.verts) > 4)
+    bmesh.update_edit_mesh(obj.data)`;
+    default: return `# Blender script mode ready`;
+  }
+}
+
+// ── Maya Scripts Panel ───────────────────────────────────────────────
+function initMayaPanel(container) {
+  container.innerHTML = `
+  <div class="panel-layout">
+    <aside class="controls-card">
+      <h3>Maya Script Settings</h3>
+      <div class="control-row">
+        <label for="my-mode">Constraint Mode</label>
+        <select id="my-mode">
+          <option value="modulo">Modulo face Selection</option>
+          <option value="angle">Hard Edge Selection</option>
+          <option value="slope">Slope Face Vector</option>
+          <option value="ngons">N-Gon Finder Utility</option>
+          <option value="nonmanifold">Non-Manifold Inspector</option>
+        </select>
+      </div>
+      <div class="mode-desc" id="my-desc" style="font-size:12px;color:var(--text-muted);">Modulo components filter.</div>
+      <div class="control-row">
+        <label for="my-lang">Scripting Language</label>
+        <select id="my-lang">
+          <option value="python" selected>Python</option>
+          <option value="mel">MEL</option>
+        </select>
+      </div>
+      <hr class="divider">
+      <div class="control-row" id="my-param-n">
+        <label for="my-n">Interval (N)</label>
+        <input type="number" id="my-n" value="4" min="1" max="64">
+      </div>
+      <div class="control-row" id="my-param-angle" style="display:none">
+        <label for="my-angle">Threshold Angle (°)</label>
+        <input type="number" id="my-angle" value="30" min="0" max="180">
+      </div>
+      <div class="control-row" id="my-param-slope" style="display:none">
+        <label for="my-axis">Target Vector Axis</label>
+        <select id="my-axis"><option>Y</option><option>-Y</option><option>X</option><option>-X</option><option>Z</option><option>-Z</option></select>
+        <label for="my-threshold" style="margin-top:8px;">Angle Deviation (°)</label>
+        <input type="number" id="my-threshold" value="45" min="0" max="90">
+      </div>
+      <div class="btn-row" style="margin-top:8px; display:none;">
+        <button class="btn btn-primary" id="my-gen"><i data-lucide="cog"></i> Generate</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="my-copy" style="width:100%;"><i data-lucide="copy"></i> Copy Script</button>
+      </div>
+    </aside>
+    <div class="script-editor-container">
+      <div class="editor-header">
+        <span>MAYA SOURCE CODE</span>
+        <span id="editor-lang-badge">PYTHON</span>
+      </div>
+      <pre class="script-output-pre"><code id="my-output-code" class="language-python"></code></pre>
+    </div>
+  </div>`;
+
+  lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide', container });
+
+  const modeEl = container.querySelector('#my-mode');
+  const langEl = container.querySelector('#my-lang');
+  const codeEl = container.querySelector('#my-output-code');
+  const genBtn = container.querySelector('#my-gen');
+  const copyBtn = container.querySelector('#my-copy');
+  const descEl = container.querySelector('#my-desc');
+
+  const paramN = container.querySelector('#my-param-n');
+  const paramAngle = container.querySelector('#my-param-angle');
+  const paramSlope = container.querySelector('#my-param-slope');
+
+  function showParams(mode) {
+    paramN.style.display = mode === 'modulo' ? '' : 'none';
+    paramAngle.style.display = mode === 'angle' ? '' : 'none';
+    paramSlope.style.display = mode === 'slope' ? '' : 'none';
+    if (descEl) descEl.textContent = MODE_DESCRIPTIONS[mode] || '';
+  }
+
+  function generate() {
+    const params = {
+      n: +container.querySelector('#my-n').value,
+      angle: +container.querySelector('#my-angle').value,
+      axis: container.querySelector('#my-axis').value,
+      threshold: +container.querySelector('#my-threshold').value
+    };
+    const code = buildScript(langEl.value, modeEl.value, params);
+    codeEl.textContent = code;
+    codeEl.className = langEl.value === 'mel' ? 'language-clike' : 'language-python';
+    Prism.highlightElement(codeEl);
+  }
+
+  modeEl.addEventListener('change', () => { showParams(modeEl.value); generate(); });
+  langEl.addEventListener('change', () => {
+    container.querySelector('#editor-lang-badge').textContent = langEl.value.toUpperCase();
+    generate();
+  });
+
+  // Real-time compilation on parameter input
+  container.querySelectorAll('input').forEach(input => input.addEventListener('input', generate));
+  container.querySelectorAll('select').forEach(sel => sel.addEventListener('change', generate));
+
+  genBtn.addEventListener('click', generate);
+
+  copyBtn.addEventListener('click', () => {
+    if (!codeEl.textContent) return;
+    navigator.clipboard.writeText(codeEl.textContent).then(() => {
+      showToast('Maya script copied to clipboard!');
+    });
+  });
+
+  showParams(modeEl.value);
+  generate();
+}
+
+// ── Blender Scripts Panel ────────────────────────────────────────────
+function initBlenderPanel(container) {
+  container.innerHTML = `
+  <div class="panel-layout">
+    <aside class="controls-card">
+      <h3>Blender Script Settings</h3>
+      <div class="control-row">
+        <label for="bl-mode">Constraint Mode</label>
+        <select id="bl-mode">
+          <option value="modulo">Modulo face Selection</option>
+          <option value="angle">Hard Edge Selection</option>
+          <option value="slope">Slope Face Vector</option>
+          <option value="ngons">N-Gon Finder Utility</option>
+        </select>
+      </div>
+      <div class="mode-desc" id="bl-desc" style="font-size:12px;color:var(--text-muted);">Modulo components filter.</div>
+      <hr class="divider">
+      <div class="control-row" id="bl-param-n">
+        <label for="bl-n">Interval (N)</label>
+        <input type="number" id="bl-n" value="4" min="1" max="64">
+      </div>
+      <div class="control-row" id="bl-param-angle" style="display:none">
+        <label for="bl-angle">Threshold Angle (°)</label>
+        <input type="number" id="bl-angle" value="30" min="0" max="180">
+      </div>
+      <div class="control-row" id="bl-param-slope" style="display:none">
+        <label for="bl-axis">Target Vector Axis</label>
+        <select id="bl-axis"><option>Z</option><option>Y</option><option>X</option></select>
+        <label for="bl-threshold" style="margin-top:8px;">Angle Deviation (°)</label>
+        <input type="number" id="bl-threshold" value="45" min="0" max="90">
+      </div>
+      <div class="btn-row" style="margin-top:8px; display:none;">
+        <button class="btn btn-primary" id="bl-gen"><i data-lucide="cog"></i> Generate</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="bl-copy" style="width:100%;"><i data-lucide="copy"></i> Copy Script</button>
+      </div>
+    </aside>
+    <div class="script-editor-container">
+      <div class="editor-header">
+        <span>BLENDER SOURCE CODE</span>
+        <span>PYTHON 3</span>
+      </div>
+      <pre class="script-output-pre"><code id="bl-output-code" class="language-python"></code></pre>
+    </div>
+  </div>`;
+
+  lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide', container });
+
+  const modeEl = container.querySelector('#bl-mode');
+  const codeEl = container.querySelector('#bl-output-code');
+  const genBtn = container.querySelector('#bl-gen');
+  const copyBtn = container.querySelector('#bl-copy');
+  const descEl = container.querySelector('#bl-desc');
+
+  const paramN = container.querySelector('#bl-param-n');
+  const paramAngle = container.querySelector('#bl-param-angle');
+  const paramSlope = container.querySelector('#bl-param-slope');
+
+  function showParams(mode) {
+    paramN.style.display = mode === 'modulo' ? '' : 'none';
+    paramAngle.style.display = mode === 'angle' ? '' : 'none';
+    paramSlope.style.display = mode === 'slope' ? '' : 'none';
+    if (descEl) descEl.textContent = MODE_DESCRIPTIONS[mode] || '';
+  }
+
+  function generate() {
+    const params = {
+      n: +container.querySelector('#bl-n').value,
+      angle: +container.querySelector('#bl-angle').value,
+      axis: container.querySelector('#bl-axis').value,
+      threshold: +container.querySelector('#bl-threshold').value
+    };
+    const code = buildBlenderScript(modeEl.value, params);
+    codeEl.textContent = code;
+    Prism.highlightElement(codeEl);
+  }
+
+  modeEl.addEventListener('change', () => { showParams(modeEl.value); generate(); });
+  
+  // Real-time compilation on parameter input
+  container.querySelectorAll('input').forEach(input => input.addEventListener('input', generate));
+  container.querySelectorAll('select').forEach(sel => sel.addEventListener('change', generate));
+
+  genBtn.addEventListener('click', generate);
+
+  copyBtn.addEventListener('click', () => {
+    if (!codeEl.textContent) return;
+    navigator.clipboard.writeText(codeEl.textContent).then(() => {
+      showToast('Blender script copied to clipboard!');
+    });
+  });
+
+  showParams(modeEl.value);
+  generate();
+}
+
+// ── Channel Packer & Atlas Panel ──────────────────────────────────────────────
+const PRESETS = {
+  'unreal-orm': {
+    label: 'Unreal ORM Map',
+    channels: { R: 'occlusion', G: 'roughness', B: 'metalness', A: 'none' },
+    desc: 'Occlusion → R · Roughness → G · Metalness → B (Unreal standard)'
+  },
+  'unity-mask': {
+    label: 'Unity Mask Map',
+    channels: { R: 'metalness', G: 'occlusion', B: 'none', A: 'roughness' },
+    desc: 'Metalness → R · Occlusion → G · Smoothness → Alpha (Unity standard)'
+  },
+  'custom': {
+    label: 'Custom Mapping',
+    channels: { R: 'custom', G: 'custom', B: 'custom', A: 'custom' },
+    desc: 'Manually assign source texture mappings'
+  }
+};
+
+const CHANNEL_OPTIONS = ['none','red','green','blue','alpha','luminance'];
+
+function initPackerPanel(container) {
+  container.innerHTML = `
+  <div class="panel-layout">
+    <aside class="controls-card">
+      <h3>Packer Engine</h3>
+      <div class="control-row">
+        <label for="pk-preset">Baking Preset</label>
+        <select id="pk-preset">
+          <option value="unreal-orm">Unreal ORM Map</option>
+          <option value="unity-mask">Unity Mask Map</option>
+          <option value="custom">Custom Mapping</option>
+        </select>
+        <p id="pk-preset-desc" style="font-size:11px;color:var(--text-muted);margin-top:4px;">${PRESETS['unreal-orm'].desc}</p>
+      </div>
+      <div class="control-row">
+        <label for="pk-size">Bake Resolution</label>
+        <select id="pk-size">
+          <option>512</option><option>1024</option><option selected>2048</option><option>4096</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label for="pk-sample">Sampling Channel</label>
+        <select id="pk-sample">
+          <option value="luminance" selected>Luminance (Luma)</option>
+          <option value="red">Red</option>
+          <option value="green">Green</option>
+          <option value="blue">Blue</option>
+          <option value="alpha">Alpha</option>
+        </select>
+      </div>
+      <label class="check-row" for="pk-matte">
+        <input type="checkbox" id="pk-matte">
+        <span>Missing Roughness is matte</span>
+      </label>
+      <label class="check-row" for="pk-flipv">
+        <input type="checkbox" id="pk-flipv">
+        <span>Flip V (Invert Y axis)</span>
+      </label>
+      <hr class="divider">
+      <h3>Atlas Maker</h3>
+      <div class="control-row">
+        <label for="pk-padding">Border Padding (px)</label>
+        <select id="pk-padding">
+          <option>0</option><option>2</option><option selected>4</option><option>8</option><option>16</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label for="pk-maxsize">Maximum Atlas Limit</label>
+        <select id="pk-maxsize">
+          <option>1024</option><option selected>2048</option><option>4096</option><option>8192</option>
+        </select>
+      </div>
+      <label class="check-row" for="pk-pot">
+        <input type="checkbox" id="pk-pot" checked>
+        <span>Force Power-of-two Grid</span>
+      </label>
+      <label class="check-row" for="pk-rot">
+        <input type="checkbox" id="pk-rot">
+        <span>Allow 90° Sprite Rotation</span>
+      </label>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-primary" id="pk-pack"><i data-lucide="box"></i> Pack Channels</button>
+        <button class="btn btn-secondary" id="pk-atlas-btn"><i data-lucide="layout-grid"></i> Build Atlas</button>
+      </div>
+    </aside>
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <div class="controls-card">
+        <h3>PBR Channel Packing Guide</h3>
+        <div style="font-size:12.5px; color:var(--text-muted); line-height:1.6; display:flex; flex-direction:column; gap:8px;">
+          <div><strong style="color: #ef4444;">Red Channel (R):</strong> Usually place <strong>Ambient Occlusion (AO)</strong> map.</div>
+          <div><strong style="color: #10b981;">Green Channel (G):</strong> Usually place <strong>Roughness</strong> map.</div>
+          <div><strong style="color: #3b82f6;">Blue Channel (B):</strong> Usually place <strong>Metalness / Metallic</strong> map.</div>
+          <div><strong style="color: #a855f7;">Alpha Channel (A):</strong> Place <strong>Height / Displacement</strong> map if available.</div>
+        </div>
+      </div>
+      <div class="controls-card">
+        <h3>Input Maps Allocation</h3>
+        <div class="channel-slots">
+          ${['R','G','B','A'].map(ch => `
+          <div class="channel-slot slot-${ch}" id="slot-${ch}">
+            <div class="slot-header">
+              <span class="slot-label">${ch} Channel</span>
+              <span style="font-size:10px;opacity:0.6;font-family:monospace;">SLOT_${ch}</span>
+            </div>
+            <div class="upload-zone" style="padding:16px 10px;">
+              <input type="file" id="pk-file-${ch}" accept="image/*">
+              <strong id="pk-name-${ch}" style="font-size:11px;">Drop map here</strong>
+            </div>
+            <div class="control-row" style="margin-top:10px;">
+              <label for="pk-src-${ch}" style="font-size:11px;">Target channel</label>
+              <select id="pk-src-${ch}" style="padding:6px 8px;font-size:12px;">
+                ${CHANNEL_OPTIONS.map(o => `<option value="${o}">${o}</option>`).join('')}
+              </select>
+            </div>
+            <label class="check-row" for="pk-inv-${ch}" style="margin-top:10px;">
+              <input type="checkbox" id="pk-inv-${ch}">
+              <span style="font-size:12px;">Invert Values</span>
+            </label>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div class="controls-card" id="pk-out-wrap" style="display:none;">
+        <h3>Packed Result</h3>
+        <div style="display:flex;justify-content:center;background:#08080c;padding:12px;border-radius:var(--radius);border:1px solid var(--border);">
+          <canvas id="pk-canvas" style="max-width:100%;max-height:480px;border-radius:4px;"></canvas>
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-primary" id="pk-dl"><i data-lucide="download"></i> Download packed image</button>
+        </div>
+      </div>
+      <div class="controls-card">
+        <h3>Atlas Input Sprites</h3>
+        <div class="atlas-drop" id="atlas-drop">
+          <input type="file" id="atlas-files" accept="image/*" multiple>
+          <i data-lucide="images"></i>
+          <strong>Drop textures for atlas assembly</strong>
+          <p>PNG / JPG · multi-selection supported</p>
+          <div class="atlas-thumb-grid" id="atlas-thumbs"></div>
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-secondary" id="atlas-clear"><i data-lucide="rotate-ccw"></i> Clear Grid</button>
+        </div>
+      </div>
+      <div class="controls-card" id="atlas-out-wrap" style="display:none;">
+        <h3>Atlas Output</h3>
+        <div style="display:flex;justify-content:center;background:#08080c;padding:12px;border-radius:var(--radius);border:1px solid var(--border);">
+          <canvas id="atlas-canvas" style="max-width:100%;max-height:480px;border-radius:4px;"></canvas>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--text-muted);" id="atlas-uv-info"></div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn btn-primary" id="atlas-dl"><i data-lucide="download"></i> Download Atlas PNG</button>
+          <button class="btn btn-secondary" id="atlas-json"><i data-lucide="file-json"></i> Export UV Coordinates</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide', container });
+
+  const $ = (id) => container.querySelector(`#${id}`) || document.getElementById(id);
+  const maps  = { R: null, G: null, B: null, A: null };
+  let atlasImages = [];
+  let atlasData = null;
+
+  $('pk-preset').addEventListener('change', () => {
+    const p = PRESETS[$('pk-preset').value];
+    $('pk-preset-desc').textContent = p.desc;
+  });
+
+  ['R','G','B','A'].forEach(ch => {
+    const input = $(`pk-file-${ch}`);
+    const zone  = input.closest('.upload-zone');
+    function load(file) {
+      if (!file) return;
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        maps[ch] = img;
+        $(`pk-name-${ch}`).textContent = file.name;
+        zone.style.borderColor = 'var(--accent)';
+      };
+      img.src = url;
+    }
+    input.addEventListener('change', e => load(e.target.files[0]));
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('drag-over');
+      load(e.dataTransfer.files[0]);
+    });
+  });
+
+  function sampleChannel(pixelData, i, srcCh) {
+    switch (srcCh) {
+      case 'red':   return pixelData[i];
+      case 'green': return pixelData[i+1];
+      case 'blue':  return pixelData[i+2];
+      case 'alpha': return pixelData[i+3];
+      default:      return 0.299*pixelData[i] + 0.587*pixelData[i+1] + 0.114*pixelData[i+2];
+    }
+  }
+
+  $('pk-pack').addEventListener('click', () => {
+    const size   = +$('pk-size').value;
+    const sample = $('pk-sample').value;
+    const flipV  = $('pk-flipv').checked;
+    const matte  = $('pk-matte').checked;
+
+    const out = document.createElement('canvas');
+    out.width = out.height = size;
+    const ctx = out.getContext('2d');
+    const id  = ctx.createImageData(size, size);
+
+    const chData = {};
+    ['R','G','B','A'].forEach(ch => {
+      if (!maps[ch]) return;
+      const c = document.createElement('canvas');
+      c.width = size; c.height = size;
+      const cx = c.getContext('2d');
+      if (flipV) { cx.translate(0, size); cx.scale(1, -1); }
+      cx.drawImage(maps[ch], 0, 0, size, size);
+      if (flipV) { cx.setTransform(1,0,0,1,0,0); }
+      chData[ch] = cx.getImageData(0, 0, size, size).data;
+    });
+
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const i = (y * size + x) * 4;
+        ['R','G','B','A'].forEach((ch, ci) => {
+          let v;
+          if (chData[ch]) {
+            const srcCh = $(`pk-src-${ch}`).value || sample;
+            v = sampleChannel(chData[ch], i, srcCh);
+            if ($(`pk-inv-${ch}`).checked) v = 255 - v;
+          } else {
+            v = (ch === 'A') ? 255 : (matte && ch === 'G') ? 255 : 0;
+          }
+          id.data[i + ci] = Math.round(v);
+        });
+      }
+    }
+
+    ctx.putImageData(id, 0, 0);
+    $('pk-out-wrap').style.display = '';
+    const c = $('pk-canvas');
+    c.width = size; c.height = size;
+    c.getContext('2d').putImageData(id, 0, 0);
+    showToast('Channels packed successfully.');
+  });
+
+  $('pk-dl').addEventListener('click', () => {
+    const c = $('pk-canvas');
+    if (!c.width) return;
+    const a = document.createElement('a');
+    a.href = c.toDataURL('image/png');
+    a.download = 'packed_texture.png';
+    a.click();
+    showToast('Packed texture downloaded.');
+  });
+
+  const atlasInput = $('atlas-files');
+  const atlasThumb = $('atlas-thumbs');
+  const atlasDrop  = $('atlas-drop');
+
+  function addAtlasImages(files) {
+    Array.from(files).forEach(file => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        atlasImages.push({ img, name: file.name });
+        const th = document.createElement('img');
+        th.src = url; th.className = 'atlas-thumb'; th.title = file.name;
+        atlasThumb.appendChild(th);
+      };
+      img.src = url;
+    });
+  }
+
+  atlasInput.addEventListener('change', e => addAtlasImages(e.target.files));
+  atlasDrop.addEventListener('dragover', e => { e.preventDefault(); atlasDrop.classList.add('drag-over'); });
+  atlasDrop.addEventListener('dragleave', () => atlasDrop.classList.remove('drag-over'));
+  atlasDrop.addEventListener('drop', e => {
+    e.preventDefault(); atlasDrop.classList.remove('drag-over');
+    addAtlasImages(e.dataTransfer.files);
+  });
+  $('atlas-clear').addEventListener('click', () => {
+    atlasImages = []; atlasThumb.innerHTML = '';
+    $('atlas-out-wrap').style.display = 'none';
+    showToast('Atlas input sprites cleared.');
+  });
+
+  $('pk-atlas-btn').addEventListener('click', () => {
+    if (!atlasImages.length) return;
+    const maxSize  = +$('pk-maxsize').value;
+    const padding  = +$('pk-padding').value;
+    const pot      = $('pk-pot').checked;
+    const allowRot = $('pk-rot').checked;
+
+    const sprites = atlasImages.map(({ img, name }) => ({
+      img, name, w: img.naturalWidth, h: img.naturalHeight, x: 0, y: 0, rotated: false,
+    }));
+    sprites.sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h));
+
+    let shelfX = padding, shelfY = padding, shelfH = 0;
+    let atlasW = 0, atlasH = 0;
+
+    sprites.forEach(s => {
+      let sw = s.w + padding, sh = s.h + padding;
+      if (allowRot && sh > maxSize - shelfY && sw < sh) {
+        [sw, sh] = [sh, sw]; s.rotated = true;
+      }
+      if (shelfX + sw > maxSize) { shelfX = padding; shelfY += shelfH + padding; shelfH = 0; }
+      s.x = shelfX; s.y = shelfY;
+      shelfX += sw; shelfH = Math.max(shelfH, sh - padding);
+      atlasW = Math.max(atlasW, s.x + sw);
+      atlasH = Math.max(atlasH, s.y + sh + shelfH);
+    });
+
+    if (pot) {
+      const nextPOT = v => { let p = 1; while (p < v) p <<= 1; return p; };
+      atlasW = nextPOT(atlasW); atlasH = nextPOT(atlasH);
+    }
+    atlasW = Math.min(atlasW, maxSize); atlasH = Math.min(atlasH, maxSize);
+
+    const canvas = $('atlas-canvas');
+    canvas.width = atlasW; canvas.height = atlasH;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, atlasW, atlasH);
+
+    atlasData = { atlasWidth: atlasW, atlasHeight: atlasH, sprites: [] };
+
+    sprites.forEach(s => {
+      ctx.save();
+      if (s.rotated) {
+        ctx.translate(s.x + s.h, s.y);
+        ctx.rotate(Math.PI / 2);
+        ctx.drawImage(s.img, 0, 0);
+      } else {
+        ctx.drawImage(s.img, s.x, s.y);
+      }
+      ctx.restore();
+      atlasData.sprites.push({
+        name: s.name, x: s.x, y: s.y,
+        width: s.rotated ? s.h : s.w, height: s.rotated ? s.w : s.h,
+        rotated: s.rotated,
+        uv: { u0: s.x/atlasW, v0: s.y/atlasH, u1: (s.x+(s.rotated?s.h:s.w))/atlasW, v1: (s.y+(s.rotated?s.w:s.h))/atlasH }
+      });
+    });
+
+    $('atlas-out-wrap').style.display = '';
+    $('atlas-uv-info').textContent = `Resolution: ${atlasW} × ${atlasH} · Packed sprites: ${sprites.length}`;
+    showToast('Texture atlas generated.');
+  });
+
+  $('atlas-dl').addEventListener('click', () => {
+    const c = $('atlas-canvas');
+    if (!c.width) return;
+    const a = document.createElement('a');
+    a.href = c.toDataURL('image/png');
+    a.download = 'texture_atlas.png';
+    a.click();
+    showToast('Atlas PNG file exported.');
+  });
+
+  $('atlas-json').addEventListener('click', () => {
+    if (!atlasData) return;
+    const blob = new Blob([JSON.stringify(atlasData, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'atlas_uv.json';
+    a.click();
+    showToast('Atlas UV coordinates exported.');
+  });
+}
+
+</script>
+</body>
+</html>
