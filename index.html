@@ -782,6 +782,14 @@ select:focus, input[type="number"]:focus {
 }
 
   </style>
+  <!-- Import map to resolve bare specifiers for Three.js OrbitControls -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
 </head>
 <body>
   <div class="app-container">
